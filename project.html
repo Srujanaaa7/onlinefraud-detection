@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fraud Detection System</title>
+
+<style>
+body {
+    margin: 0;
+    font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    background: #f5f7fb;
+    color: #1f2937;
+}
+
+.container {
+    max-width: 1100px;
+    margin: 50px auto;
+    padding: 0 24px;
+}
+
+.header h1 {
+    margin: 0;
+    font-size: 30px;
+    font-weight: 600;
+}
+
+.header p {
+    margin-top: 6px;
+    font-size: 14px;
+    color: #6b7280;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 24px;
+}
+
+.card {
+    background: #ffffff;
+    border-radius: 10px;
+    padding: 26px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+}
+
+.form-group {
+    margin-bottom: 18px;
+}
+
+label {
+    display: block;
+    font-size: 13px;
+    margin-bottom: 6px;
+    color: #374151;
+}
+
+input, select {
+    width: 100%;
+    padding: 12px;
+    border-radius: 6px;
+    border: 1px solid #d1d5db;
+    font-size: 14px;
+}
+
+input:focus, select:focus {
+    outline: none;
+    border-color: #2563eb;
+}
+
+.note {
+    font-size: 12px;
+    color: #6b7280;
+    margin-top: 4px;
+}
+
+button {
+    width: 100%;
+    margin-top: 16px;
+    padding: 13px;
+    background: #2563eb;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #1d4ed8;
+}
+
+.result-card {
+    background: #f9fafb;
+    border-radius: 8px;
+    padding: 22px;
+    border-left: 4px solid #9ca3af;
+}
+
+.result-card.fraud {
+    border-left-color: #dc2626;
+}
+
+.result-card.safe {
+    border-left-color: #16a34a;
+}
+
+.metric {
+    display: flex;
+    justify-content: space-between;
+    margin: 12px 0;
+    font-size: 14px;
+}
+
+.footer {
+    margin-top: 30px;
+    font-size: 12px;
+    color: #6b7280;
+    text-align: center;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="header">
+        <h1>Online Fraud Detection</h1>
+        <p>Graph Neural Network based Transaction Risk Analysis</p>
+    </div>
+
+    <div class="grid">
+
+        <!-- INPUT -->
+        <div class="card">
+            <h3>Transaction Details</h3>
+
+            <div class="form-group">
+                <label>Transaction Node ID (Used for prediction)</label>
+                <input id="nodeId" type="number" placeholder="Required">
+            </div>
+
+            <div class="form-group">
+                <label>Transaction Amount</label>
+                <input id="amount" type="number" placeholder="Reference only">
+                <div class="note">Not used in model inference</div>
+            </div>
+
+            <div class="form-group">
+                <label>Transaction Type</label>
+                <select id="type">
+                    <option>PAYMENT</option>
+                    <option>CASH_OUT</option>
+                </select>
+                <div class="note">Not used in model inference</div>
+            </div>
+
+            <div class="form-group">
+                <label>Connected Accounts</label>
+                <input id="accounts" placeholder="Sender → Receiver">
+                <div class="note">Graph already contains account relationships</div>
+            </div>
+
+            <button onclick="predict()">Analyze Transaction</button>
+        </div>
+
+        <!-- RESULT -->
+        <div class="card">
+            <h3>Prediction Result</h3>
+
+            <div class="result-card" id="resultBox">
+                <div class="metric">
+                    <span>Fraud Probability</span>
+                    <span id="prob">—</span>
+                </div>
+                <div class="metric">
+                    <span>Decision</span>
+                    <span id="decision">—</span>
+                </div>
+                <div class="metric">
+                    <span>Risk Level</span>
+                    <span id="risk">—</span>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="footer">
+        Decision rule: Fraud probability ≥ 0.7 → Fraud
+    </div>
+
+</div>
+
+<script>
+async function predict() {
+    const nodeId = document.getElementById("nodeId").value;
+    if (!nodeId) {
+        alert("Transaction Node ID is required");
+        return;
+    }
+
+    const res = await fetch("http://127.0.0.1:6006/predict", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ node_id: parseInt(nodeId) })
+    });
+
+    const data = await res.json();
+
+    document.getElementById("prob").innerText =
+        (data.fraud_probability * 100).toFixed(2) + "%";
+
+    const box = document.getElementById("resultBox");
+
+    if (data.prediction) {
+        box.className = "result-card fraud";
+        document.getElementById("decision").innerText = "FRAUD";
+        document.getElementById("risk").innerText = "HIGH";
+    } else {
+        box.className = "result-card safe";
+        document.getElementById("decision").innerText = "LEGITIMATE";
+        document.getElementById("risk").innerText = "LOW";
+    }
+}
+</script>
+
+</body>
+</html>
